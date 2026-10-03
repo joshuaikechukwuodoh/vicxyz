@@ -248,6 +248,10 @@ export default function AdminPage() {
       {busy && <p role="status">Working… please keep this page open.</p>}
       {!user ? (
         <form className="admin-panel admin-login" onSubmit={login}>
+          <p>
+            Sign in to upload photos and videos, publish products, and manage
+            orders.
+          </p>
           <label>
             Email
             <input name="email" type="email" required autoComplete="username" />

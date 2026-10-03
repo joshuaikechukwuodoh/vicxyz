@@ -67,7 +67,7 @@ const request = (
 const context = { params: Promise.resolve({}) };
 const input = (quantity = 2) => ({
   customerName: "Test Buyer",
-  customerPhone: "08158124025",
+  customerPhone: "08084549079",
   items: [{ productId, quantity }],
 });
 const stock = async (id = productId) =>
@@ -129,7 +129,7 @@ describe("saved orders and stock transactions", () => {
     expect(result.order).not.toHaveProperty("requestHash");
     expect((await stock()).quantity).toBe(5);
     const url = new URL(result.whatsapp.url);
-    expect(url.pathname).toBe("/2348158124025");
+    expect(url.pathname).toBe("/2348084549079");
     expect(url.searchParams.get("text")).toContain(result.order.reference);
     expect(url.searchParams.get("text")).toContain("negotiate");
     await db()
@@ -446,7 +446,7 @@ describe("validation and public routes", () => {
     expect(response.status).toBe(201);
     const result = await response.json();
     expect(result.data.order.reference).toMatch(/^MOT-/);
-    expect(result.data.whatsapp.url).toMatch(/^https:\/\/wa.me\/2348158124025/);
+    expect(result.data.whatsapp.url).toMatch(/^https:\/\/wa.me\/2348084549079/);
   });
   it("returns validation errors for tampered orders and invalid product filters", async () => {
     expect(

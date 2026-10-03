@@ -23,6 +23,9 @@ export default function Navbar() {
         <Link href="/#categories">Categories</Link>
         <Link href="/about">About</Link>
         <Link href="/contact">Contact</Link>
+        <Link href="/admin" onClick={() => setOpen(false)}>
+          Admin
+        </Link>
       </nav>
       <div className="nav-actions">
         <Link href="/cart" className="cart-button">

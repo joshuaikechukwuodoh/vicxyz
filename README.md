@@ -104,7 +104,7 @@ Order body:
 
 Omit `customerEmail` when unused. Send a UUID in the `Idempotency-Key` header and reuse it for retries of the same order. Reusing a key with changed customer/items returns 409. If omitted, the server generates a key, so independent retries will create independent orders. The existing cart sends and retains a key per checkout payload.
 
-The server validates products and available stock, reads current prices, calculates exact subtotals and total, and saves the order and all items in one transaction. It stores product name/unit price snapshots. References use `MOT-YYYYMMDD-0001`, based on the Lagos calendar date and an atomic database counter. Checkout never reserves or permanently reduces stock. WhatsApp links use the configured business number `2348158124025`; customers still tap Send in WhatsApp.
+The server validates products and available stock, reads current prices, calculates exact subtotals and total, and saves the order and all items in one transaction. It stores product name/unit price snapshots. References use `MOT-YYYYMMDD-0001`, based on the Lagos calendar date and an atomic database counter. Checkout never reserves or permanently reduces stock. WhatsApp links use the configured business number `2348084549079`; customers still tap Send in WhatsApp.
 
 ## Admin authentication
 
