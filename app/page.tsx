@@ -8,14 +8,14 @@ export default function Home() {
     <>
       <section className="hero section-dark">
         <div className="hero-copy">
-          <p className="kicker">Lagos, Nigeria · Cars & motor parts</p>
+          <p className="kicker">Lagos, Nigeria · Cars & auto parts</p>
           <h1>
             The right car.
             <br />
             The right parts.
           </h1>
           <p className="hero-text">
-            Welcome to Victor Pedro Motor Parts. From cars of all makes to the
+            Welcome to Victor Pedro Automobile. From cars of all makes to the
             parts that keep them moving, I’m here to help you find what you need
             in Lagos.
           </p>
@@ -48,7 +48,7 @@ export default function Home() {
           <div className="floating-card">
             <small>Meet your car & parts seller</small>
             <strong>Victor Pedro.</strong>
-            <span>Cars. Motor parts. A personal conversation.</span>
+            <span>Cars. Auto parts. A personal conversation.</span>
           </div>
         </div>
       </section>
@@ -74,47 +74,6 @@ export default function Home() {
             Shop cars <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="car-inspiration">
-          {[
-            [
-              "Everyday comfort",
-              "photo-1550355291-bbee04a92027",
-              "A sedan on the road",
-            ],
-            [
-              "A little more presence",
-              "photo-1492144534655-ae79c964c9d7",
-              "A sports car photographed from the front",
-            ],
-            [
-              "Built for the open road",
-              "photo-1503376780353-7e6692767b70",
-              "A luxury sports car",
-            ],
-          ].map(([title, photo, alt]) => (
-            <Link
-              href="/category/cars"
-              className="car-inspiration-card"
-              key={photo}
-            >
-              <img
-                src={`https://images.unsplash.com/${photo}?auto=format&fit=crop&w=1000&q=85`}
-                alt={alt}
-                loading="lazy"
-              />
-              <div>
-                <h3>{title}</h3>
-                <span>
-                  Explore our cars <ArrowRight size={16} />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-        <p className="tiny-note">
-          Vehicle inspiration. See current listings below for available cars,
-          specifications and prices.
-        </p>
         <CatalogGrid category="cars" limit={3} />
       </section>
 
@@ -188,7 +147,7 @@ export default function Home() {
         <div className="founder-photo">
           <img
             src="/images/victor-pedro/founder.jpeg"
-            alt="Victor Pedro, owner of Victor Pedro Motor Parts"
+            alt="Victor Pedro, owner of Victor Pedro Automobile"
             loading="lazy"
           />
         </div>
@@ -201,7 +160,7 @@ export default function Home() {
           </h2>
           <p>
             I’m a business owner in Lagos, selling cars of different makes and
-            motor parts. This business is personal to me, and so is helping you
+            auto parts. This business is personal to me, and so is helping you
             find the right vehicle or the right part.
           </p>
           <p>

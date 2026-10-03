@@ -15,7 +15,7 @@ import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { createOrder, changeOrderStatus, findOrder } from "@/services/orders";
 import { saveProduct, deleteProduct, deleteCategory } from "@/services/catalog";
-import { listProducts } from "@/repositories/catalog";
+import { listProducts, findProduct } from "@/repositories/catalog";
 import { orderSchema, productFilters } from "@/validators";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { login, requireAdmin, logout } from "@/lib/auth";
@@ -25,6 +25,8 @@ import { api } from "@/lib/api";
 import { POST as orderPost } from "@/app/api/orders/route";
 import { POST as loginPost } from "@/app/api/admin/auth/login/route";
 import { GET as productsGet } from "@/app/api/products/route";
+import { clearDemoCatalog } from "@/services/demo-catalog";
+import { productSchema, productPatch } from "@/validators";
 import { consumeRateLimit } from "@/lib/rate-limit";
 
 const holder = vi.hoisted(() => ({
@@ -326,6 +328,88 @@ describe("catalog and database constraints", () => {
     await expect(deleteCategory(categoryId)).rejects.toThrow();
   });
 });
+describe("product videos and demo cleanup", () => {
+  it("persists, reads, replaces, and removes ordered product videos", async () => {
+    await saveProduct(
+      {
+        videos: [
+          "https://example.com/front.mp4",
+          "https://example.com/interior.webm",
+        ],
+      },
+      productId,
+    );
+    let product = await findProduct("test-car");
+    expect(product?.videos.map((v) => v.videoUrl)).toEqual([
+      "https://example.com/front.mp4",
+      "https://example.com/interior.webm",
+    ]);
+    expect(
+      (await listProducts(productFilters.parse({}))).items[0].videos,
+    ).toHaveLength(2);
+    await saveProduct({ name: "Updated test car" }, productId);
+    expect((await findProduct("test-car"))?.videos).toHaveLength(2);
+    await saveProduct(
+      { videos: ["https://example.com/replacement.mp4"] },
+      productId,
+    );
+    expect((await findProduct("test-car"))?.videos).toHaveLength(1);
+    await saveProduct({ videos: [] }, productId);
+    expect((await findProduct("test-car"))?.videos).toHaveLength(0);
+  });
+  it("validates video counts and HTTPS URLs while keeping a cover photo required", () => {
+    expect(
+      productPatch.safeParse({ videos: ["javascript:alert(1)"] }).success,
+    ).toBe(false);
+    expect(
+      productPatch.safeParse({ videos: ["http://example.com/car.mp4"] })
+        .success,
+    ).toBe(false);
+    expect(
+      productPatch.safeParse({
+        videos: Array(4).fill("https://example.com/car.mp4"),
+      }).success,
+    ).toBe(false);
+    expect(productPatch.safeParse({ videos: [] }).success).toBe(true);
+    expect(productPatch.safeParse({ images: [] }).success).toBe(false);
+  });
+  it("removes only demo listings and preserves uploads, confirmed orders, and snapshots", async () => {
+    const sample = {
+      name: "Demo car",
+      description: "Demo",
+      price: "100.00",
+      quantity: 5,
+      condition: "Used",
+      categoryId,
+      images: ["https://images.unsplash.com/photo-demo"],
+    };
+    const demo = await saveProduct({ ...sample, slug: "honda-cbr-500r" });
+    const real = await saveProduct({
+      ...sample,
+      slug: "toyota-camry-xse",
+      images: ["https://test.ufs.sh/f/real.jpg"],
+    });
+    const confirmed = await saveProduct({ ...sample, slug: "yamaha-mt-07" });
+    const pendingOrder = await createOrder(
+      { ...input(), items: [{ productId: demo.id, quantity: 1 }] },
+      randomUUID(),
+    );
+    const confirmedOrder = await createOrder(
+      { ...input(), items: [{ productId: confirmed.id, quantity: 1 }] },
+      randomUUID(),
+    );
+    await changeOrderStatus(confirmedOrder.order.id, "CONFIRMED");
+    expect(await clearDemoCatalog()).toEqual({ removed: 1, skipped: 1 });
+    expect(await findProduct("honda-cbr-500r")).toBeNull();
+    expect((await findProduct("toyota-camry-xse"))?.id).toBe(real.id);
+    expect((await findProduct("yamaha-mt-07"))?.id).toBe(confirmed.id);
+    expect((await findOrder(pendingOrder.order.id)).items[0]).toMatchObject({
+      productId: null,
+      productName: "Demo car",
+      unitPrice: "100.00",
+    });
+  });
+});
 describe("validation and public routes", () => {
   it("rejects client prices, totals, duplicate products and invalid quantities", () => {
     expect(
@@ -445,14 +529,12 @@ describe("admin authentication and protection", () => {
   async function seedAdmin() {
     const password = "secure-test-password";
     const passwordHash = await hashPassword(password);
-    await db()
-      .insert(schema.users)
-      .values({
-        name: "Admin",
-        email: "admin@example.com",
-        passwordHash,
-        role: "ADMIN",
-      });
+    await db().insert(schema.users).values({
+      name: "Admin",
+      email: "admin@example.com",
+      passwordHash,
+      role: "ADMIN",
+    });
     return { password, passwordHash };
   }
   it("hashes passwords, creates secure sessions and never returns password hashes", async () => {
@@ -581,6 +663,24 @@ describe("admin authentication and protection", () => {
         )
       ).status,
     ).toBe(200);
+  });
+  it("requires an authenticated, same-origin admin before signing direct media uploads", async () => {
+    const { authorizeMediaUpload } = await import("@/lib/upload-router");
+    await expect(
+      authorizeMediaUpload(request("/api/uploadthing", "POST")),
+    ).rejects.toThrow("Admin login required");
+    const { password } = await seedAdmin();
+    await login("admin@example.com", password);
+    expect(
+      await authorizeMediaUpload(request("/api/uploadthing", "POST")),
+    ).toHaveProperty("adminId");
+    await expect(
+      authorizeMediaUpload(
+        request("/api/uploadthing", "POST", undefined, {
+          Origin: "https://evil.example",
+        }),
+      ),
+    ).rejects.toThrow("Request origin is not allowed");
   });
   it("protects every admin catalog, order and upload endpoint before processing input", async () => {
     const endpoints = [

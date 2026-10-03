@@ -19,10 +19,11 @@ export type ProductDto = {
   status: ProductStatus;
   category: CategoryDto;
   images: { id: string; imageUrl: string }[];
+  videos: { id: string; videoUrl: string }[];
 };
 export function storefrontProduct(
   product: ProductDto,
-): Product & { images: string[]; status: ProductStatus } {
+): Product & { images: string[]; videos: string[]; status: ProductStatus } {
   return {
     id: product.id,
     name: product.name,
@@ -34,6 +35,7 @@ export function storefrontProduct(
     category: product.category.name,
     categorySlug: product.category.slug,
     image: product.images[0]?.imageUrl ?? "/images/victor-pedro/logo.png",
+    videos: (product.videos ?? []).map((v) => v.videoUrl),
     images: product.images.map((i) => i.imageUrl),
     status: product.status,
   };

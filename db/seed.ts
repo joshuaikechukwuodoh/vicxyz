@@ -1,13 +1,9 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { categories, products, productImages, users } from "./schema";
-import {
-  categories as samples,
-  products as sampleProducts,
-} from "../lib/products";
+import { categories, users } from "./schema";
+import { defaultCategories } from "./default-categories";
 import { hashPassword } from "../lib/password";
-import { stockStatus } from "../services/catalog";
 import { eq } from "drizzle-orm";
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error("Set DATABASE_URL");
@@ -29,43 +25,28 @@ async function main() {
           role: "ADMIN",
         })
         .onConflictDoNothing({ target: users.email });
-      for (const category of samples) {
+      // Rename the existing category without breaking any product references.
+      const existing = await tx
+        .select()
+        .from(categories)
+        .where(eq(categories.slug, "auto-parts"));
+      if (!existing.length)
+        await tx
+          .update(categories)
+          .set({
+            name: "Auto Parts",
+            slug: "auto-parts",
+            updatedAt: new Date(),
+          })
+          .where(eq(categories.slug, "motor-parts"));
+      for (const category of defaultCategories)
         await tx
           .insert(categories)
-          .values({
-            name: category.name,
-            slug: category.slug,
-            imageUrl: category.image,
-          })
+          .values(category)
           .onConflictDoNothing({ target: categories.slug });
-      }
-      for (const sample of sampleProducts) {
-        const [category] = await tx
-          .select()
-          .from(categories)
-          .where(eq(categories.slug, sample.categorySlug));
-        const [product] = await tx
-          .insert(products)
-          .values({
-            name: sample.name,
-            slug: sample.slug,
-            description: sample.description,
-            price: String(sample.price),
-            quantity: sample.stock,
-            condition: sample.condition,
-            categoryId: category.id,
-            status: stockStatus(sample.stock),
-          })
-          .onConflictDoNothing({ target: products.slug })
-          .returning();
-        if (product)
-          await tx
-            .insert(productImages)
-            .values({ productId: product.id, imageUrl: sample.image });
-      }
     });
     console.log(
-      "Admin and sample catalog seeded. Existing records were preserved.",
+      "Admin and categories initialized. No sample products were added.",
     );
   } finally {
     await client.end();

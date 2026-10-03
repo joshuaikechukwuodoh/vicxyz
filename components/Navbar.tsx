@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Menu, ShoppingBag, X } from "lucide-react";
 import { useState } from "react";
+import Brand from "./Brand";
 import { useCartStore } from "@/store/cart-store";
 
 export default function Navbar() {
@@ -14,16 +15,7 @@ export default function Navbar() {
   return (
     <header className="nav-shell">
       <Link href="/" className="brand">
-        <img
-          className="brand-logo"
-          src="/images/victor-pedro/logo.png"
-          alt="Victor Pedro Motor Parts logo"
-          width={80}
-          height={80}
-        />
-        <div className="brand-wordmark">
-          VICTOR PEDRO<small>MOTOR PARTS & CARS</small>
-        </div>
+        <Brand />
       </Link>
       <nav className={open ? "nav-links open" : "nav-links"}>
         <Link href="/">Home</Link>

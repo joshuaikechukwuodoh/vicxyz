@@ -4,6 +4,7 @@ import {
   categories,
   products,
   productImages,
+  productVideos,
   orderItems,
   orders,
 } from "@/db/schema";
@@ -57,7 +58,7 @@ export async function saveProduct(
         .for("update");
       if (!previous) throw new ApiError(404, "Product not found");
     }
-    const { images, ...fields } = input;
+    const { images, videos, ...fields } = input;
     const quantity = fields.quantity ?? previous!.quantity;
     const status =
       fields.status ??
@@ -74,22 +75,40 @@ export async function saveProduct(
           .returning()
       : await tx
           .insert(products)
-          .values({ ...(fields as Omit<ProductInput, "images">), status })
+          .values({
+            ...(fields as Omit<ProductInput, "images" | "videos">),
+            status,
+          })
           .returning();
     if (images) {
       await tx.delete(productImages).where(eq(productImages.productId, row.id));
-      await tx
-        .insert(productImages)
-        .values(
-          images.map((imageUrl, position) => ({
-            productId: row.id,
-            imageUrl,
-            position,
-          })),
-        );
+      await tx.insert(productImages).values(
+        images.map((imageUrl, position) => ({
+          productId: row.id,
+          imageUrl,
+          position,
+        })),
+      );
+    }
+    if (videos) {
+      await tx.delete(productVideos).where(eq(productVideos.productId, row.id));
+      if (videos.length)
+        await tx
+          .insert(productVideos)
+          .values(
+            videos.map((videoUrl, position) => ({
+              productId: row.id,
+              videoUrl,
+              position,
+            })),
+          );
     }
     return {
       ...row,
+      videos: await tx
+        .select()
+        .from(productVideos)
+        .where(eq(productVideos.productId, row.id)),
       images: await tx
         .select()
         .from(productImages)

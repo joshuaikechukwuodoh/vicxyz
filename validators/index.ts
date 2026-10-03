@@ -47,6 +47,7 @@ export const productSchema = z
     status: statusSchema.optional(),
     categoryId: idSchema,
     images: z.array(imageUrl).min(1).max(12),
+    videos: z.array(imageUrl).max(3).optional(),
   })
   .strict();
 export const productPatch = productSchema

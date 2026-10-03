@@ -1,5 +1,5 @@
 {
-  "name": "victor-pedro",
+  "name": "victor-pedro-automobile",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,8 @@
     "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
     "test:backend": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:clear-demo": "tsx db/clear-demo.ts"
   },
   "dependencies": {
     "@types/node": "latest",

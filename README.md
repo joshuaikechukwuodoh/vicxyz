@@ -1,6 +1,6 @@
 # VICTOR PEDRO — catalog and WhatsApp orders
 
-An admin-managed catalog for cars, motorcycles, motor parts and accessories, with a cream storefront, an automotive brand icon, a close portrait and a car photo showcase. Catalog pages load the public APIs; the cart saves an order before opening WhatsApp. There is no payment gateway.
+An admin-managed catalog for cars, motorcycles, auto parts and accessories, with a cream storefront, an automotive brand icon, a close portrait and a car photo showcase. Catalog pages load the public APIs; the cart saves an order before opening WhatsApp. There is no payment gateway.
 
 ## Stack
 
@@ -45,7 +45,7 @@ npm run db:seed
 npm run dev
 ```
 
-Open `http://localhost:3000`. The seed creates Cars, Motorcycles, Motor Parts and Accessories, six sample products with images, and the admin. It preserves existing records and does not reset existing passwords or products. Review sample inventory and prices before making the store public. Remove `ADMIN_PASSWORD` from deployment settings after seeding.
+Open `http://localhost:3000`. The seed creates Cars, Motorcycles, Auto Parts and Accessories and the admin. It adds no demo products. It preserves existing records and does not reset existing passwords or products. Upload your own inventory through `/admin`. Remove `ADMIN_PASSWORD` from deployment settings after seeding.
 
 The backend does not silently fall back to mock data when the database is unavailable. The storefront shows a recoverable loading error. Existing legacy carts are cleared once because products now use database UUIDs.
 
@@ -183,7 +183,7 @@ curl -b admin-cookies.txt -H 'Origin: http://localhost:3000' \
   http://localhost:3000/api/admin/uploads
 ```
 
-Uploading and attaching images are separate requests. Unattached or replaced assets are retained in UploadThing; remove unused assets through the UploadThing console. Video storage is outside this backend's requested image model.
+Uploading and attaching images are separate requests. Unattached or replaced assets are retained in UploadThing; remove unused assets through the UploadThing console. Product videos are supported by the direct-upload dashboard described below.
 
 ## Admin orders and stock
 
@@ -218,6 +218,28 @@ After schema changes, run `npm run db:generate`, review the SQL, and apply `npm 
 
 ## Admin dashboard
 
-Open `/admin` and sign in with the seeded administrator. Upload product or category photos, review previews, choose the cover image, then save to publish. Product and category forms support editing and deletion; orders expose only allowed status transitions. Uploads and saves show errors and prevent duplicate clicks while processing. Product inventory status is derived from quantity on save.
+Open `/admin` and sign in with the seeded administrator. Upload product/category photos and product videos, review previews, choose the cover image, then save to publish. Product and category forms support editing and deletion; orders expose only allowed status transitions. Uploads and saves show errors and prevent duplicate clicks while processing. Product inventory status is derived from quantity on save.
 
-The server-side UploadThing integration follows the [official UTApi documentation](https://docs.uploadthing.com/api-reference/ut-api). Configure public file access in your UploadThing app; the token stays on the server. Hosting must allow multipart requests up to 34 MB for this upload endpoint. The Effect dependency is overridden to a patched 3.20+ release; rerun backend tests and the build when upgrading UploadThing.
+The server-side UploadThing integration follows the [official UTApi documentation](https://docs.uploadthing.com/api-reference/ut-api). Configure public file access in your UploadThing app; the token stays on the server. The optional server-side image endpoint requires multipart requests up to 34 MB; the dashboard uses direct uploads instead. The Effect dependency is overridden to a patched 3.20+ release; rerun backend tests and the build when upgrading UploadThing.
+
+## Your real photos and videos
+
+Sign in at `/admin`, add a product name, description, price, quantity and category, then use **Upload product photos** and **Upload product videos**. At least one product photo is required. Choose up to 12 JPEG/PNG/WebP photos (8 MB each) and up to 3 MP4/WebM videos (64 MB each). Review the previews and click **Publish product**. Uploading files alone does not publish a listing. Existing listings can be edited, media removed, or a different cover photo chosen.
+
+Dashboard uploads use UploadThing's authenticated direct-upload router at `/api/uploadthing`, so the media bytes go from the browser directly to storage. `/api/admin/uploads` remains available for the original image-only server-side API. Admin authorization runs before signing any direct upload; UploadThing verifies its completion callbacks. The server-only `UPLOADTHING_TOKEN` is required. Set public file access for customer media. Video playback depends on the browser supporting the video's codec; MP4 with H.264 is the most broadly compatible option.
+
+Product APIs now return a `videos` array alongside `images`. Create/PATCH accepts an optional `videos` array of up to three HTTPS URLs. `videos: []` removes all videos; omitting it preserves existing videos. `db/migrations/0002_product_videos.sql` creates the product-video table.
+
+For an existing database:
+
+```powershell
+npm run db:migrate
+npm run db:seed
+npm run db:clear-demo
+```
+
+Demo cleanup targets only the six original sample slugs still using Unsplash photos. It skips products in active confirmed orders, preserves order-item snapshots, and replaces original category stock photos with neutral category artwork. Real uploads are preserved. New seeds no longer add sample products. The stock car-photo showcase was removed from the homepage; your personal photos remain.
+
+## Purchased domain
+
+The site identity is **Victor Pedro Automobile** and metadata uses **https://victorpedroautomobile.com**. Add `victorpedroautomobile.com` to the website's hosting dashboard, then set the DNS records supplied by that host in your domain registrar. Wait for the host to verify the domain and issue HTTPS. Set the deployed `APP_URL=https://victorpedroautomobile.com` and redeploy; keep `APP_URL=http://localhost:3000` for local development. Admin login and uploads enforce this origin. A source-code name change does not itself configure DNS or hosting. If `www` is used, redirect it to the canonical domain rather than serving admin on two origins.

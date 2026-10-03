@@ -1,3 +1,4 @@
+import Brand from "./Brand";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SITE } from "@/lib/config";
@@ -29,7 +30,7 @@ export default function Footer() {
           <a
             className="button dark"
             href={getWhatsAppUrl(
-              "Hello Victor Pedro, I would like to enquire about cars or motor parts.",
+              "Hello Victor Pedro, I would like to enquire about cars or auto parts.",
             )}
             target="_blank"
             rel="noopener noreferrer"
@@ -41,17 +42,11 @@ export default function Footer() {
       <div className="footer-top">
         <div>
           <div className="brand light">
-            <img
-              className="brand-logo"
-              src="/images/victor-pedro/logo.png"
-              alt="Victor Pedro Motor Parts logo"
-              width={180}
-              height={180}
-            />
+            <Brand />
           </div>
           <p>
-            Cars of different makes and motor parts. A personal business,
-            proudly based in Lagos, Nigeria.
+            Cars of different makes and auto parts. A personal business, proudly
+            based in Lagos, Nigeria.
           </p>
         </div>
         <div>
@@ -67,7 +62,7 @@ export default function Footer() {
           <Link href="/cart">Your cart</Link>
           <a
             href={getWhatsAppUrl(
-              "Hello Victor Pedro, I would like to enquire about cars or motor parts.",
+              "Hello Victor Pedro, I would like to enquire about cars or auto parts.",
             )}
             target="_blank"
             rel="noopener noreferrer"
@@ -83,8 +78,8 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© 2026 VICTOR PEDRO. All rights reserved.</span>
-        <span>Built for modern commerce.</span>
+        <span>© 2026 Victor Pedro Automobile. All rights reserved.</span>
+        <span>victorpedroautomobile.com</span>
       </div>
     </footer>
   );

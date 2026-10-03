@@ -11,7 +11,12 @@ import {
   count,
 } from "drizzle-orm";
 import { getDb } from "@/db";
-import { categories, products, productImages } from "@/db/schema";
+import {
+  categories,
+  products,
+  productImages,
+  productVideos,
+} from "@/db/schema";
 import { productFilters } from "@/validators";
 import type { z } from "zod";
 export async function listCategories() {
@@ -65,10 +70,23 @@ export async function listProducts(filters: z.infer<typeof productFilters>) {
         )
         .orderBy(asc(productImages.position), asc(productImages.id))
     : [];
+  const videos = rows.length
+    ? await db
+        .select()
+        .from(productVideos)
+        .where(
+          inArray(
+            productVideos.productId,
+            rows.map((r) => r.product.id),
+          ),
+        )
+        .orderBy(asc(productVideos.position), asc(productVideos.id))
+    : [];
   return {
     items: rows.map((row) => ({
       ...row.product,
       category: row.category,
+      videos: videos.filter((v) => v.productId === row.product.id),
       images: images.filter((i) => i.productId === row.product.id),
     })),
     pagination: {
@@ -92,5 +110,10 @@ export async function findProduct(slug: string) {
     .from(productImages)
     .where(eq(productImages.productId, row.product.id))
     .orderBy(asc(productImages.position), asc(productImages.id));
-  return { ...row.product, category: row.category, images };
+  const videos = await db
+    .select()
+    .from(productVideos)
+    .where(eq(productVideos.productId, row.product.id))
+    .orderBy(asc(productVideos.position), asc(productVideos.id));
+  return { ...row.product, category: row.category, images, videos };
 }

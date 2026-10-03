@@ -91,6 +91,21 @@ export const productImages = pgTable(
   },
   (t) => [index("product_images_product_idx").on(t.productId)],
 );
+export const productVideos = pgTable(
+  "product_videos",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    position: integer("position").default(0).notNull(),
+    videoUrl: text("video_url").notNull(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("product_videos_product_idx").on(t.productId)],
+);
 export const orders = pgTable(
   "orders",
   {

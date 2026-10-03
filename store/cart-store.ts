@@ -32,6 +32,6 @@ export const useCartStore = create<CartStore>()(
       decrease: (id) => set((state) => ({ items: state.items.map((item) => item.id === id ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item) })),
       clear: () => set({ items: [] }),
     }),
-    { name: "motora-cart", version: 1, migrate: () => ({ items: [] }) }
+    { name: "motora-cart", version: 2, migrate: () => ({ items: [] }) }
   )
 )

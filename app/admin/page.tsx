@@ -3,6 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CarFront, Upload, LogOut, Plus } from "lucide-react";
 import type { CategoryDto, ProductDto } from "@/lib/catalog-client";
+import { uploadFiles } from "@/lib/media-upload-client";
+import { SITE } from "@/lib/config";
 import type { OrderStatus } from "@/types/api";
 
 type Order = {
@@ -29,6 +31,7 @@ const blank = {
   condition: "Foreign Used",
   categoryId: "",
   images: [] as string[],
+  videos: [] as string[],
 };
 async function api<T>(url: string, method = "GET", body?: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -69,6 +72,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<{ name: string } | null>(null);
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -127,42 +131,64 @@ export default function AdminPage() {
   }
   async function upload(
     files: FileList | null,
-    target: "product" | "category",
+    target: "product" | "category" | "video",
   ) {
-    if (!files?.length) return;
+    if (!files?.length || busy) return;
+    const selection = Array.from(files);
     await run(async () => {
-      const images = Array.from(files);
-      if (
-        images.length + (target === "product" ? draft.images.length : 0) >
-        (target === "product" ? 12 : 1)
-      )
+      const video = target === "video";
+      const maximum = video ? 3 : target === "product" ? 12 : 1;
+      const previous = video
+        ? draft.videos.length
+        : target === "product"
+          ? draft.images.length
+          : 0;
+      if (selection.length + previous > maximum)
         throw new Error(
-          target === "product"
-            ? "Use at most 12 product photos."
-            : "Choose one category photo.",
+          `Use at most ${maximum} ${video ? "videos" : "photos"}.`,
         );
+      const types = video
+        ? ["video/mp4", "video/webm"]
+        : ["image/jpeg", "image/png", "image/webp"];
+      const limit = (video ? 64 : 8) * 1024 * 1024;
       if (
-        images.some(
-          (f) =>
-            !["image/jpeg", "image/png", "image/webp"].includes(f.type) ||
-            f.size > 8 * 1024 * 1024,
+        selection.some(
+          (file) =>
+            !types.includes(file.type) || file.size < 1 || file.size > limit,
         )
       )
-        throw new Error("Choose JPEG, PNG or WebP photos up to 8 MB each.");
-      const form = new FormData();
-      images.forEach((f) => form.append("files", f));
-      const uploaded = await api<{ imageUrl: string }[]>(
-        "/api/admin/uploads",
-        "POST",
-        form,
-      );
-      if (target === "product")
-        setDraft((d) => ({
-          ...d,
-          images: [...d.images, ...uploaded.map((f) => f.imageUrl)],
-        }));
-      else setCategory((c) => ({ ...c, imageUrl: uploaded[0].imageUrl }));
-    }, "Photos uploaded. Save the form to publish them.");
+        throw new Error(
+          video
+            ? "Choose MP4 or WebM videos up to 64 MB each."
+            : "Choose JPEG, PNG or WebP photos up to 8 MB each.",
+        );
+      setUploadProgress(0);
+      try {
+        const progress = new Map<string, number>();
+        const uploaded = await uploadFiles(
+          target === "category" ? "categoryImage" : "productMedia",
+          {
+            files: selection,
+            onUploadProgress: ({ file, progress: percent }) => {
+              progress.set(file.name, percent);
+              setUploadProgress(
+                Math.round(
+                  [...progress.values()].reduce((sum, n) => sum + n, 0) /
+                    selection.length,
+                ),
+              );
+            },
+          },
+        );
+        const urls = uploaded.map((file) => file.ufsUrl);
+        if (video) setDraft((d) => ({ ...d, videos: [...d.videos, ...urls] }));
+        else if (target === "product")
+          setDraft((d) => ({ ...d, images: [...d.images, ...urls] }));
+        else setCategory((c) => ({ ...c, imageUrl: urls[0] }));
+      } finally {
+        setUploadProgress(null);
+      }
+    }, "Upload complete. Save the form to publish your media.");
   }
   function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -187,7 +213,7 @@ export default function AdminPage() {
       <div className="section-header">
         <div>
           <p className="eyebrow">
-            <CarFront size={18} /> Victor Pedro management
+            <CarFront size={18} /> {SITE.name} management
           </p>
           <h2>{user ? `Welcome, ${user.name}.` : "Admin sign in."}</h2>
         </div>
@@ -368,8 +394,7 @@ export default function AdminPage() {
                   />
                 </label>
                 <p className="tiny-note">
-                  Up to 12 photos, 8 MB each, 32 MB per batch. The first photo
-                  is the cover.
+                  Up to 12 photos, 8 MB each. The first photo is the cover.
                 </p>
                 <div className="admin-photos">
                   {draft.images.map((url, i) => (
@@ -402,6 +427,45 @@ export default function AdminPage() {
                           Make cover
                         </button>
                       )}
+                    </div>
+                  ))}
+                </div>
+                <label className="admin-upload">
+                  <Upload size={20} /> Upload product videos
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm"
+                    multiple
+                    onChange={(event) => {
+                      void upload(event.target.files, "video");
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+                <p className="tiny-note">
+                  Up to 3 MP4 or WebM videos, 64 MB each. Customers can play
+                  them on the product page.
+                </p>
+                <div className="admin-video-previews">
+                  {draft.videos.map((url, i) => (
+                    <div key={url + i}>
+                      <video
+                        src={url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraft((d) => ({
+                            ...d,
+                            videos: d.videos.filter((_, n) => n !== i),
+                          }))
+                        }
+                      >
+                        Remove video {i + 1}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -554,7 +618,10 @@ export default function AdminPage() {
             )}
             {products.map((p) => (
               <div className="admin-row" key={p.id}>
-                <img src={p.images[0]?.imageUrl} alt={p.name} />
+                <img
+                  src={p.images[0]?.imageUrl ?? "/images/category-cars.svg"}
+                  alt={p.name}
+                />
                 <div>
                   <strong>{p.name}</strong>
                   <p>
@@ -575,6 +642,7 @@ export default function AdminPage() {
                       condition: p.condition,
                       categoryId: p.category.id,
                       images: p.images.map((i) => i.imageUrl),
+                      videos: (p.videos ?? []).map((v) => v.videoUrl),
                     });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}

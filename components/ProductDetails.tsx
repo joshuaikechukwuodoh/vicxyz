@@ -57,6 +57,21 @@ export default function ProductDetails({ slug }: { slug: string }) {
               ))}
             </div>
           )}
+          {product.videos.length > 0 && (
+            <div className="product-videos">
+              <h3>Watch this vehicle or part</h3>
+              {product.videos.map((url, i) => (
+                <video
+                  key={url + i}
+                  src={url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label={`${product.name}, video ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="detail-copy">
           <p className="eyebrow">{product.category}</p>
