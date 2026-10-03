@@ -243,3 +243,8 @@ Demo cleanup targets only the six original sample slugs still using Unsplash pho
 ## Purchased domain
 
 The site identity is **Victor Pedro Automobile** and metadata uses **https://victorpedroautomobile.com**. Add `victorpedroautomobile.com` to the website's hosting dashboard, then set the DNS records supplied by that host in your domain registrar. Wait for the host to verify the domain and issue HTTPS. Set the deployed `APP_URL=https://victorpedroautomobile.com` and redeploy; keep `APP_URL=http://localhost:3000` for local development. Admin login and uploads enforce this origin. A source-code name change does not itself configure DNS or hosting. If `www` is used, redirect it to the canonical domain rather than serving admin on two origins.
+
+
+### Vercel admin origin configuration
+
+Admin login and all mutations accept the configured APP_URL, the custom domain, https://vicxyz.vercel.app, and the exact Vercel deployment/production/branch URLs supplied by Vercel system environment variables. Unrelated Vercel sites and forged Host headers remain blocked. Optional ALLOWED_ORIGINS accepts comma-separated exact origins. Keep APP_URL set to your primary deployed domain; do not use a wildcard or disable origin checks.

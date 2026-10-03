@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SITE } from "./config";
 import { ZodError } from "zod";
 export class ApiError extends Error {
   constructor(
@@ -10,15 +11,40 @@ export class ApiError extends Error {
 }
 export function assertOrigin(request: Request, required = false) {
   const origin = request.headers.get("origin");
-  const expected =
-    process.env.APP_URL ||
-    (process.env.NODE_ENV !== "production"
-      ? new URL(request.url).origin
-      : undefined);
-  if (
-    (required && !origin) ||
-    (origin && (!expected || origin !== new URL(expected).origin))
-  )
+  if (!origin) {
+    if (required) throw new ApiError(403, "Request origin is not allowed");
+    return;
+  }
+  // Trust only explicit configuration and this project's known deployment URLs.
+  // Never authorize arbitrary *.vercel.app sites or a caller-supplied Host header.
+  const allowed = new Set<string>();
+  const add = (value?: string) => {
+    if (!value) return;
+    try {
+      const url = new URL(value);
+      if (
+        ["http:", "https:"].includes(url.protocol) &&
+        !url.username &&
+        !url.password
+      )
+        allowed.add(url.origin);
+    } catch {
+      /* Ignore invalid configuration; fail closed. */
+    }
+  };
+  add(process.env.APP_URL);
+  add(SITE.url);
+  add("https://vicxyz.vercel.app");
+  for (const host of [
+    process.env.VERCEL_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_BRANCH_URL,
+  ])
+    if (host) add(`https://${host}`);
+  for (const value of (process.env.ALLOWED_ORIGINS ?? "").split(","))
+    add(value.trim());
+  if (process.env.NODE_ENV !== "production") add(new URL(request.url).origin);
+  if (!allowed.has(origin))
     throw new ApiError(403, "Request origin is not allowed");
 }
 export async function readLimitedBody(
