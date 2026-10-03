@@ -5,30 +5,20 @@ const mock = vi.hoisted(() => ({
   failAt: -1,
   destroyed: [] as string[],
 }));
-vi.mock("cloudinary", () => ({
-  v2: {
-    config: vi.fn(),
-    uploader: {
-      upload_stream: (
-        _options: unknown,
-        callback: (error: unknown, result?: unknown) => void,
-      ) => ({
-        end: () => {
-          const n = mock.count++;
-          queueMicrotask(() =>
-            n === mock.failAt
-              ? callback(new Error("Provider failure"))
-              : callback(null, {
-                  secure_url: `https://res.cloudinary.com/test/image/upload/${n}.jpg`,
-                  public_id: `image-${n}`,
-                }),
-          );
-        },
-      }),
-      destroy: async (publicId: string) => {
-        mock.destroyed.push(publicId);
-      },
-    },
+vi.mock("uploadthing/server", () => ({
+  UTApi: class {
+    async uploadFiles() {
+      const n = mock.count++;
+      if (n === mock.failAt)
+        return { data: null, error: { message: "Provider failure" } };
+      return {
+        data: { ufsUrl: `https://test.ufs.sh/f/${n}.jpg`, key: `image-${n}` },
+        error: null,
+      };
+    }
+    async deleteFiles(key: string) {
+      mock.destroyed.push(key);
+    }
   },
 }));
 function request(files: File[]) {
@@ -44,28 +34,26 @@ const jpeg = () =>
     type: "image/jpeg",
   });
 beforeEach(() => {
-  vi.stubEnv("CLOUDINARY_CLOUD_NAME", "test");
-  vi.stubEnv("CLOUDINARY_API_KEY", "test");
-  vi.stubEnv("CLOUDINARY_API_SECRET", "test");
+  vi.stubEnv("UPLOADTHING_TOKEN", "test");
   mock.count = 0;
   mock.failAt = -1;
   mock.destroyed = [];
 });
-describe("Cloudinary image uploads", () => {
+describe("UploadThing image uploads", () => {
   it("returns multiple HTTPS image URLs in upload order", async () => {
     const images = await uploadImages(request([jpeg(), jpeg()]));
     expect(images).toEqual([
       {
-        imageUrl: "https://res.cloudinary.com/test/image/upload/0.jpg",
+        imageUrl: "https://test.ufs.sh/f/0.jpg",
         publicId: "image-0",
       },
       {
-        imageUrl: "https://res.cloudinary.com/test/image/upload/1.jpg",
+        imageUrl: "https://test.ufs.sh/f/1.jpg",
         publicId: "image-1",
       },
     ]);
   });
-  it("rejects fake images and SVG before calling Cloudinary", async () => {
+  it("rejects fake images and SVG before calling UploadThing", async () => {
     await expect(
       uploadImages(
         request([
@@ -107,7 +95,7 @@ describe("Cloudinary image uploads", () => {
     expect(mock.destroyed).toEqual(["image-0"]);
   });
   it("returns a clear service-unavailable error for missing configuration", async () => {
-    vi.stubEnv("CLOUDINARY_API_SECRET", "");
+    vi.stubEnv("UPLOADTHING_TOKEN", "");
     await expect(uploadImages(request([jpeg()]))).rejects.toMatchObject({
       status: 503,
     });

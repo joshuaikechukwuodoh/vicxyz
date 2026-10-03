@@ -8,9 +8,11 @@ import {
 } from "@/lib/catalog-client";
 export default function CatalogGrid({
   category,
+  search,
   limit = 24,
 }: {
   category?: string;
+  search?: string;
   limit?: number;
 }) {
   const [page, setPage] = useState(1);
@@ -19,14 +21,29 @@ export default function CatalogGrid({
     page: String(page),
   });
   if (category) query.set("category", category);
+  if (search) query.set("search", search);
   const { data, loading, error, retry } = useApi<{
     items: ProductDto[];
     pagination: { totalPages: number };
   }>(`/api/products?${query}`);
-  if (loading) return <p role="status">Loading the collection…</p>;
+  if (loading)
+    return (
+      <div className="catalog-loading" role="status">
+        <p>Loading the collection…</p>
+        <div className="product-grid" aria-hidden="true">
+          {Array.from({ length: Math.min(limit, 6) }, (_, i) => (
+            <div className="product-skeleton" key={i}>
+              <div />
+              <span />
+              <span />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   if (error)
     return (
-      <div role="alert">
+      <div className="catalog-message" role="alert">
         <p>{error}</p>
         <button className="button dark" onClick={retry}>
           Try again
@@ -34,7 +51,16 @@ export default function CatalogGrid({
       </div>
     );
   if (!data?.items.length)
-    return <p>No products are available in this collection yet.</p>;
+    return (
+      <div className="catalog-message">
+        <h3>No matching products</h3>
+        <p>
+          {search
+            ? "Try another search or choose a different category."
+            : "No products have been added to this collection yet."}
+        </p>
+      </div>
+    );
   return (
     <>
       <div className="product-grid">

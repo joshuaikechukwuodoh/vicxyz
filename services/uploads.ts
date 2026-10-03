@@ -1,16 +1,9 @@
-import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
+import { UTApi } from "uploadthing/server";
 import { ApiError, readLimitedBody } from "@/lib/api";
 function configure() {
-  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } =
-    process.env;
-  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET)
+  if (!process.env.UPLOADTHING_TOKEN)
     throw new ApiError(503, "Image storage is not configured");
-  cloudinary.config({
-    cloud_name: CLOUDINARY_CLOUD_NAME,
-    api_key: CLOUDINARY_API_KEY,
-    api_secret: CLOUDINARY_API_SECRET,
-    secure: true,
-  });
+  return new UTApi({ token: process.env.UPLOADTHING_TOKEN });
 }
 function isImage(bytes: Buffer) {
   return (
@@ -22,26 +15,8 @@ function isImage(bytes: Buffer) {
       bytes.toString("ascii", 8, 12) === "WEBP")
   );
 }
-function upload(bytes: Buffer): Promise<UploadApiResponse> {
-  return new Promise((resolve, reject) =>
-    cloudinary.uploader
-      .upload_stream(
-        {
-          folder: "victor-pedro/products",
-          resource_type: "image",
-          allowed_formats: ["jpg", "jpeg", "png", "webp"],
-          overwrite: false,
-        },
-        (error, result) =>
-          error || !result
-            ? reject(error ?? new Error("Upload failed"))
-            : resolve(result),
-      )
-      .end(bytes),
-  );
-}
 export async function uploadImages(request: Request) {
-  configure();
+  const storage = configure();
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data"))
     throw new ApiError(415, "Use multipart/form-data with files fields");
   if (Number(request.headers.get("content-length") ?? 0) > 34 * 1024 * 1024)
@@ -80,19 +55,35 @@ export async function uploadImages(request: Request) {
   );
   if (buffers.some((b) => !isImage(b)))
     throw new ApiError(422, "Only JPEG, PNG and WebP images are accepted");
-  const results = await Promise.allSettled(buffers.map(upload));
+  // Normalize MIME types from verified bytes rather than trusting browser input.
+  const results = await Promise.allSettled(
+    images.map(async (file, index) => {
+      const bytes = buffers[index];
+      const type =
+        bytes[0] === 0xff
+          ? "image/jpeg"
+          : bytes[0] === 137
+            ? "image/png"
+            : "image/webp";
+      const result = await storage.uploadFiles(
+        new File([new Uint8Array(bytes)], file.name, { type }),
+      );
+      if (result.error || !result.data) throw new Error("Upload failed");
+      return result.data;
+    }),
+  );
   if (results.some((r) => r.status === "rejected")) {
     await Promise.allSettled(
       results
         .filter((r) => r.status === "fulfilled")
-        .map((r) => cloudinary.uploader.destroy(r.value.public_id)),
+        .map((r) => storage.deleteFiles(r.value.key)),
     );
     throw new ApiError(502, "Image upload failed. Please try again.");
   }
   return results
     .filter((r) => r.status === "fulfilled")
     .map((r) => ({
-      imageUrl: r.value.secure_url,
-      publicId: r.value.public_id,
+      imageUrl: r.value.ufsUrl,
+      publicId: r.value.key,
     }));
 }

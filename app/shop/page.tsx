@@ -1,5 +1,21 @@
-import CatalogGrid from "@/components/CatalogGrid"
+import ShopCatalog from "@/components/ShopCatalog";
 
 export default function ShopPage() {
-  return <section className="section-pad page-section"><div className="page-hero"><p className="eyebrow">All products</p><h1>Shop the collection.</h1><p>Explore currently available cars, motorcycles, motor parts and accessories.</p></div><CatalogGrid /></section>
+  return (
+    <section className="section-pad page-section shop-page">
+      <div className="page-hero">
+        <p className="eyebrow">Cars, parts & more</p>
+        <h1>
+          Find your next
+          <br />
+          car or part.
+        </h1>
+        <p>
+          Browse the collection, check prices and choose what you need. Speak
+          directly with Victor to confirm availability and arrange your order.
+        </p>
+      </div>
+      <ShopCatalog />
+    </section>
+  );
 }

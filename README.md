@@ -1,10 +1,10 @@
 # VICTOR PEDRO — catalog and WhatsApp orders
 
-An admin-managed catalog for cars, motorcycles, motor parts and accessories. The existing milk-cream storefront and personal branding are preserved. Catalog pages load the public APIs; the cart saves an order before opening WhatsApp. There is no payment gateway.
+An admin-managed catalog for cars, motorcycles, motor parts and accessories, with a cream storefront, an automotive brand icon, a close portrait and a car photo showcase. Catalog pages load the public APIs; the cart saves an order before opening WhatsApp. There is no payment gateway.
 
 ## Stack
 
-Next.js App Router Route Handlers, TypeScript, PostgreSQL, Drizzle ORM, Zod and Cloudinary. Admin authentication uses scrypt password hashes and revocable, opaque database sessions.
+Next.js App Router Route Handlers, TypeScript, PostgreSQL, Drizzle ORM, Zod and UploadThing. Admin authentication uses scrypt password hashes and revocable, opaque database sessions.
 
 ## Local setup
 
@@ -17,13 +17,13 @@ Copy-Item .env.example .env
 
 Set these values in `.env`:
 
-| Variable                                                               | Purpose                                                                                       |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                         | PostgreSQL connection URL. Use the provider's TLS requirements for a hosted database.         |
-| `APP_URL`                                                              | Exact browser origin, e.g. `http://localhost:3000`. Use your HTTPS site origin in production. |
-| `AUTH_SECRET`                                                          | Random secret of at least 32 characters used to hash session tokens.                          |
-| `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`                          | Initial admin for the seed script. Password must have 12–256 characters.                      |
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Server-side image upload credentials.                                                         |
+| Variable                                      | Purpose                                                                                       |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                | PostgreSQL connection URL. Use the provider's TLS requirements for a hosted database.         |
+| `APP_URL`                                     | Exact browser origin, e.g. `http://localhost:3000`. Use your HTTPS site origin in production. |
+| `AUTH_SECRET`                                 | Random secret of at least 32 characters used to hash session tokens.                          |
+| `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Initial admin for the seed script. Password must have 12–256 characters.                      |
+| `UPLOADTHING_TOKEN`                           | Server-side image upload credentials.                                                         |
 
 Generate the auth secret locally:
 
@@ -60,7 +60,7 @@ The backend does not silently fall back to mock data when the database is unavai
 | `repositories/catalog.ts`                             | Catalog reads, multiple images, filtering and pagination.                                              |
 | `services/catalog.ts`                                 | Transactional catalog writes and safe deletion.                                                        |
 | `services/orders.ts`                                  | Authoritative prices, saved snapshots, daily references, retries, stock confirmation and cancellation. |
-| `services/uploads.ts`                                 | Bounded multi-image uploads to Cloudinary.                                                             |
+| `services/uploads.ts`                                 | Bounded multi-image uploads to UploadThing.                                                            |
 | `validators/index.ts`                                 | Strict Zod request and query validation.                                                               |
 | `lib/auth.ts`, `lib/password.ts`                      | Admin sessions and scrypt password hashing.                                                            |
 | `lib/api.ts`, `lib/rate-limit.ts`                     | Consistent safe errors, body limits, origin checks and database-backed throttling.                     |
@@ -131,7 +131,7 @@ curl -c admin-cookies.txt -H 'Origin: http://localhost:3000' \
 curl -b admin-cookies.txt http://localhost:3000/api/admin/orders
 ```
 
-Treat cookie files as secrets and delete them after use. This task implements the admin API, not a new admin dashboard.
+Treat cookie files as secrets and delete them after use. Open `/admin` to sign in, upload photos, create or edit products and categories, and update order statuses.
 
 ## Admin catalog APIs
 
@@ -149,7 +149,7 @@ Create category body:
 {
   "name": "Cars",
   "slug": "cars",
-  "imageUrl": "https://res.cloudinary.com/YOUR_CLOUD/image/upload/...jpg"
+  "imageUrl": "https://YOUR_APP.ufs.sh/f/FILE_KEY"
 }
 ```
 
@@ -165,7 +165,7 @@ Create product body:
   "condition": "Foreign Used",
   "status": "LOW_STOCK",
   "categoryId": "UUID_FROM_CATEGORIES_API",
-  "images": ["https://res.cloudinary.com/YOUR_CLOUD/image/upload/...jpg"]
+  "images": ["https://YOUR_APP.ufs.sh/f/FILE_KEY"]
 }
 ```
 
@@ -173,9 +173,9 @@ PATCH accepts any nonempty subset of the create fields. `images` replaces the co
 
 Delete categories only after moving/deleting their products (409 while in use). Product deletion preserves order history via snapshots and nullable product references. Products in active CONFIRMED orders cannot be deleted until those orders are completed or cancelled.
 
-### Cloudinary upload
+### UploadThing upload
 
-Authenticate, then POST multipart form data with repeated `files` fields to `/api/admin/uploads`. Accepts 1–12 JPEG/PNG/WebP images, each up to 8 MB and total up to 32 MB. Checks file signatures and limits the streamed body. Returns a list of `{ imageUrl, publicId }`; use `imageUrl` values in category/product writes. Credentials remain server-side. Uploads go to `victor-pedro/products`. Failed batches attempt to remove successful uploads from that batch.
+Authenticate, then POST multipart form data with repeated `files` fields to `/api/admin/uploads`. Accepts 1–12 JPEG/PNG/WebP images, each up to 8 MB and total up to 32 MB. Checks file signatures and limits the streamed body. Returns a list of `{ imageUrl, publicId }` (`publicId` is the UploadThing file key, retained for API compatibility); use `imageUrl` values in category/product writes. Credentials remain server-side. Set the server-only `UPLOADTHING_TOKEN` from the UploadThing dashboard and configure public file access for catalog photos. Failed batches attempt to remove successful uploads from that batch.
 
 ```bash
 curl -b admin-cookies.txt -H 'Origin: http://localhost:3000' \
@@ -183,7 +183,7 @@ curl -b admin-cookies.txt -H 'Origin: http://localhost:3000' \
   http://localhost:3000/api/admin/uploads
 ```
 
-Uploading and attaching images are separate requests. Unattached or replaced assets are retained in Cloudinary; remove unused assets through the Cloudinary console. Video storage is outside this backend's requested image model.
+Uploading and attaching images are separate requests. Unattached or replaced assets are retained in UploadThing; remove unused assets through the UploadThing console. Video storage is outside this backend's requested image model.
 
 ## Admin orders and stock
 
@@ -212,6 +212,12 @@ npm run build
 npm audit
 ```
 
-Tests apply the actual SQL migrations to PGlite (an embedded PostgreSQL engine) and exercise pricing snapshots, references, retries, concurrent confirmations, rollback, cancellation, filtering, constraints, session expiry, origin checks, throttling and protection on all admin endpoints. They need no live credentials and make no real Cloudinary uploads. PGlite serializes connection access; its concurrency tests do not replace production PostgreSQL load testing. A hosted PostgreSQL connection and real Cloudinary uploads must still be verified after configuring credentials.
+Tests apply the actual SQL migrations to PGlite (an embedded PostgreSQL engine) and exercise pricing snapshots, references, retries, concurrent confirmations, rollback, cancellation, filtering, constraints, session expiry, origin checks, throttling and protection on all admin endpoints. They need no live credentials and make no real UploadThing uploads. PGlite serializes connection access; its concurrency tests do not replace production PostgreSQL load testing. A hosted PostgreSQL connection and real UploadThing uploads must still be verified after configuring credentials.
 
-After schema changes, run `npm run db:generate`, review the SQL, and apply `npm run db:migrate`. Deploy migrations before deploying code that requires them. Production needs a persistent PostgreSQL database, Cloudinary credentials, `APP_URL`, `AUTH_SECRET`, backups, and an ingress/request-size limit. The included Compose credentials are for local development only.
+After schema changes, run `npm run db:generate`, review the SQL, and apply `npm run db:migrate`. Deploy migrations before deploying code that requires them. Production needs a persistent PostgreSQL database, UploadThing credentials, `APP_URL`, `AUTH_SECRET`, backups, and an ingress/request-size limit. The included Compose credentials are for local development only.
+
+## Admin dashboard
+
+Open `/admin` and sign in with the seeded administrator. Upload product or category photos, review previews, choose the cover image, then save to publish. Product and category forms support editing and deletion; orders expose only allowed status transitions. Uploads and saves show errors and prevent duplicate clicks while processing. Product inventory status is derived from quantity on save.
+
+The server-side UploadThing integration follows the [official UTApi documentation](https://docs.uploadthing.com/api-reference/ut-api). Configure public file access in your UploadThing app; the token stays on the server. Hosting must allow multipart requests up to 34 MB for this upload endpoint. The Effect dependency is overridden to a patched 3.20+ release; rerun backend tests and the build when upgrading UploadThing.
