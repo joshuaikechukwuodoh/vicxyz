@@ -20,6 +20,7 @@ export const useCartStore = create<CartStore>()(
     (set) => ({
       items: [],
       addItem: (product) => set((state) => {
+        if (product.stock <= 0) return state
         const existing = state.items.find((item) => item.id === product.id)
         if (existing) {
           return { items: state.items.map((item) => item.id === product.id ? { ...item, quantity: Math.min(item.quantity + 1, item.stock) } : item) }
@@ -31,6 +32,6 @@ export const useCartStore = create<CartStore>()(
       decrease: (id) => set((state) => ({ items: state.items.map((item) => item.id === id ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item) })),
       clear: () => set({ items: [] }),
     }),
-    { name: "motora-cart" }
+    { name: "motora-cart", version: 1, migrate: () => ({ items: [] }) }
   )
 )

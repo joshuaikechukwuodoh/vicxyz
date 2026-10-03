@@ -20,7 +20,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
         <div className="product-meta"><strong>{formatPrice(product.price)}</strong><span>{product.stock} in stock</span></div>
         <div className="product-actions">
-          <button onClick={() => addItem(product)} className="button dark"><ShoppingBag size={17}/> Add to cart</button>
+          <button disabled={product.stock <= 0} onClick={() => addItem(product)} className="button dark"><ShoppingBag size={17}/> {product.stock <= 0 ? "Out of stock" : "Add to cart"}</button>
           <Link className="icon-button" href={`/product/${product.slug}`} aria-label="View product"><ArrowUpRight size={18}/></Link>
         </div>
       </div>

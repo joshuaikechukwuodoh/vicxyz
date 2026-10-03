@@ -1,10 +1,9 @@
 import Link from "next/link"
 import { ArrowRight, Check, MessageCircle } from "lucide-react"
-import ProductCard from "@/components/ProductCard"
-import { categories, products } from "@/lib/products"
+import CatalogGrid from "@/components/CatalogGrid"
+import CategoryGrid from "@/components/CategoryGrid"
 
 export default function Home() {
-  const featured = products.filter((p) => p.featured)
   return (
     <>
       <section className="hero section-dark">
@@ -25,13 +24,7 @@ export default function Home() {
 
       <section id="categories" className="section-pad categories-section">
         <div className="section-header"><div><p className="eyebrow">Shop by category</p><h2>Everything in its place.</h2></div><Link href="/shop" className="text-link">View all products <ArrowRight size={16}/></Link></div>
-        <div className="category-grid">
-          {categories.map((category, i) => (
-            <Link href={`/category/${category.slug}`} key={category.slug} className={`category-card c${i+1}`}>
-              <img src={category.image} alt={category.name}/><div className="overlay"/><span className="category-index">0{i+1}</span><div className="category-name"><h3>{category.name}</h3><ArrowRight/></div>
-            </Link>
-          ))}
-        </div>
+        <CategoryGrid />
       </section>
 
       <section className="stats-strip section-dark">
@@ -43,7 +36,7 @@ export default function Home() {
 
       <section className="section-pad featured-section">
         <div className="section-header"><div><p className="eyebrow">Selected for you</p><h2>Featured products.</h2></div><p className="header-note">A small selection of vehicles and parts currently available.</p></div>
-        <div className="product-grid">{featured.map((product) => <ProductCard product={product} key={product.id}/>)}</div>
+        <CatalogGrid limit={3} />
       </section>
 
       <section className="process section-pad">
