@@ -1,0 +1,17 @@
+import Link from "next/link"
+import { SITE } from "@/lib/config"
+import { getWhatsAppUrl } from "@/lib/whatsapp"
+
+export default function Footer() {
+  return (
+    <footer className="footer">
+      <div className="footer-top">
+        <div><div className="brand light"><img className="brand-logo" src="/images/victor-pedro/logo.png" alt="Victor Pedro Motor Parts logo" /><div className="brand-wordmark">VICTOR PEDRO<small>MOTOR PARTS & CARS</small></div></div><p>Cars of different makes and motor parts. A personal business, proudly based in Lagos, Nigeria.</p></div>
+        <div><h4>Explore</h4><Link href="/shop">Shop</Link><Link href="/#categories">Categories</Link><Link href="/about">About</Link></div>
+        <div><h4>Support</h4><Link href="/contact">Contact</Link><Link href="/cart">Your cart</Link><a href={getWhatsAppUrl("Hello Victor Pedro, I would like to enquire about cars or motor parts.")} target="_blank" rel="noopener noreferrer">WhatsApp: {SITE.phoneNumber}</a><a href={`mailto:${SITE.email}`}>{SITE.email}</a></div>
+        <div><h4>Hours</h4><p>Mon – Sat</p><p>8:00 AM – 6:00 PM</p></div>
+      </div>
+      <div className="footer-bottom"><span>© 2026 VICTOR PEDRO. All rights reserved.</span><span>Built for modern commerce.</span></div>
+    </footer>
+  )
+}
