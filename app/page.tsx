@@ -77,6 +77,22 @@ export default function Home() {
         <CatalogGrid category="cars" limit={3} />
       </section>
 
+      <section className="section-pad featured-section">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Now available in Lagos</p>
+            <h2>Two wheels. More possibilities.</h2>
+          </div>
+          <Link href="/category/motorcycles" className="text-link">
+            Shop bikes <ArrowRight size={16} />
+          </Link>
+        </div>
+        <p className="header-note">
+          Discover electric bikes and motorcycles. See real photos, watch the
+          videos on each listing and speak with us on WhatsApp.
+        </p>
+        <CatalogGrid category="motorcycles" limit={3} />
+      </section>
       <section id="categories" className="section-pad categories-section">
         <div className="section-header">
           <div>
