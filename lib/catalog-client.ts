@@ -40,12 +40,12 @@ export function storefrontProduct(
     status: product.status,
   };
 }
-export function useApi<T>(url: string) {
+export function useApi<T>(url: string, initialData?: T) {
   const [state, setState] = useState<{
     data?: T;
     error?: string;
     loading: boolean;
-  }>({ loading: true });
+  }>({ data: initialData, loading: initialData === undefined });
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const controller = new AbortController();

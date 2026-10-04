@@ -1,3 +1,9 @@
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata(
+  "About Victor Pedro — Automobile Seller in Lagos",
+  "Meet Victor Pedro, a Lagos business owner selling cars, motorcycles and auto parts. Learn about the person behind Victor Pedro Automobile.",
+  "/about",
+);
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 

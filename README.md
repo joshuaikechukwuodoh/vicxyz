@@ -248,3 +248,16 @@ The site identity is **Victor Pedro Automobile** and metadata uses **https://vic
 ### Vercel admin origin configuration
 
 Admin login and all mutations accept the configured APP_URL, the custom domain, https://vicxyz.vercel.app, and the exact Vercel deployment/production/branch URLs supplied by Vercel system environment variables. Unrelated Vercel sites and forged Host headers remain blocked. Optional ALLOWED_ORIGINS accepts comma-separated exact origins. Keep APP_URL set to your primary deployed domain; do not use a wildcard or disable origin checks.
+
+## Search engine setup
+
+Public pages use https://victorpedroautomobile.com as their canonical domain. Product pages render current listing details on the server, include Product/Offer and breadcrumb JSON-LD, and return 404 for missing products. Admin and cart pages are marked noindex. /sitemap.xml reads current categories and products from PostgreSQL, so new listings appear automatically; /robots.txt advertises the sitemap.
+
+After Vercel reports Valid Configuration and HTTPS works for the custom domain:
+1. Add a Domain property for victorpedroautomobile.com in Google Search Console.
+2. Copy Google's exact verification TXT record into Hostinger DNS and verify ownership.
+3. Submit https://victorpedroautomobile.com/sitemap.xml.
+4. Use URL Inspection to request indexing of the homepage and real product pages.
+5. Add genuine inventory with make, model, year, condition, price, location and original photos/videos. Only claim locations and delivery services the business actually supports.
+
+Search Console verification and Google Business Profile management require the owner's Google account. SEO does not guarantee indexing, immediate appearance or first-place rankings. No fabricated reviews, street addresses, specifications or service areas are added.

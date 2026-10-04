@@ -9,9 +9,16 @@ import {
   useApi,
   type ProductDto,
 } from "@/lib/catalog-client";
-export default function ProductDetails({ slug }: { slug: string }) {
+export default function ProductDetails({
+  slug,
+  initialProduct,
+}: {
+  slug: string;
+  initialProduct?: ProductDto;
+}) {
   const { data, loading, error, retry } = useApi<ProductDto>(
     `/api/products/${encodeURIComponent(slug)}`,
+    initialProduct,
   );
   const [selected, setSelected] = useState(0);
   if (loading)

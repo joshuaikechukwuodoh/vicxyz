@@ -1,3 +1,9 @@
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata(
+  "Contact Victor Pedro Automobile in Lagos",
+  "Contact Victor Pedro Automobile in Lagos by phone, email or WhatsApp to discuss vehicles, parts, availability and inspections.",
+  "/contact",
+);
 import { MessageCircle, Mail, Phone } from "lucide-react";
 import { SITE } from "@/lib/config";
 import { getWhatsAppUrl } from "@/lib/whatsapp";

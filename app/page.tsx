@@ -1,3 +1,9 @@
+import { pageMetadata } from "@/lib/seo";
+export const metadata = pageMetadata(
+  "Cars, Motorcycles & Auto Parts in Lagos",
+  "Browse cars, electric bikes, motorcycles and auto parts in Lagos, Nigeria. View prices, photos and videos and order through WhatsApp.",
+  "/",
+);
 import Link from "next/link";
 import { ArrowRight, Check, MessageCircle } from "lucide-react";
 import CatalogGrid from "@/components/CatalogGrid";
